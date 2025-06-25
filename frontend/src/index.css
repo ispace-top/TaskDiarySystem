@@ -1,0 +1,10 @@
+/* frontend/src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 可以在这里添加一些自定义的全局样式 */
+body {
+  font-family: 'Inter', sans-serif; /* 假设使用 Inter 字体，可以替换为你喜欢的字体 */
+  @apply bg-gray-100 text-gray-800;
+}
