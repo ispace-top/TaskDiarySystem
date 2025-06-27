@@ -8,16 +8,22 @@
 -   **前端**: React, Vite, Tailwind CSS, Axios, React Router
 -   **部署**: Docker, Docker Compose
 
-## 如何运行项目 (开发环境)
+## 如何运行项目
+
+您可以选择使用 Docker (推荐，用于快速启动和环境一致性) 或在本地直接运行服务。
+
+---
+
+### 选项 1: 使用 Docker (推荐)
 
 本项目使用 Docker Compose 进行容器化部署，可以一键启动所有开发服务。
 
-### 先决条件
+#### 先决条件
 
 -   [Docker](https://www.docker.com/get-started)
 -   [Docker Compose](https://docs.docker.com/compose/install/)
 
-### 步骤
+#### 步骤
 
 1.  **克隆仓库**
     ```bash
@@ -34,10 +40,11 @@
     SECRET_KEY=a_very_long_and_super_secret_random_string_for_jwt
     ACCESS_TOKEN_EXPIRE_MINUTES=60
 
-    # 数据库配置
+    # 数据库配置 (供 docker-compose 使用)
     POSTGRES_USER=taskdiary
     POSTGRES_PASSWORD=strongpassword
     POSTGRES_DB=taskdiary_db
+    # DATABASE_URL 指向 docker-compose 网络中的 'db' 服务
     DATABASE_URL=postgresql://taskdiary:strongpassword@db:5432/taskdiary_db
     ```
 
@@ -62,15 +69,89 @@
     docker-compose up --build -d
     ```
 
-    该命令会并行启动后端、前端和数据库服务。
-
 5.  **访问应用**
     -   **前端应用**: 打开浏览器访问 `http://localhost:5173`
     -   **后端 API 文档**: 访问 `http://localhost:8000/docs`
 
+---
+
+### 选项 2: 在本地运行 (不使用 Docker)
+
+此方法让您直接在您的操作系统上运行前端和后端服务。
+
+#### 先决条件
+
+-   **Node.js**: v18 或更高版本。
+-   **Python**: v3.9 或更高版本。
+-   **PostgreSQL**: 一个在本地或网络上可访问的正在运行的实例。
+
+#### 步骤
+
+1.  **准备数据库**
+    -   确保您的 PostgreSQL 服务正在运行。
+    -   创建一个新的数据库和用户供本项目使用。例如，数据库名 `taskdiary_local`，用户名 `taskdiary_user`。
+
+2.  **设置并运行后端 (Terminal 1)**
+    a. **导航到后端目录**
+    ```bash
+    cd backend
+    ```
+    b. **创建并激活 Python 虚拟环境**
+    ```bash
+    # 创建虚拟环境
+    python -m venv venv
+    # 激活 (macOS/Linux)
+    source venv/bin/activate
+    # 激活 (Windows)
+    .\venv\Scripts\activate
+    ```
+    c. **安装依赖**
+    ```bash
+    pip install -r requirements.txt
+    ```
+    d. **配置环境变量**
+    在 `backend` 目录下创建一个 `.env` 文件，并填入您的本地数据库连接信息和密钥。
+    ```env
+    # backend/.env
+    SECRET_KEY=a_very_long_and_super_secret_random_string_for_jwt
+    ACCESS_TOKEN_EXPIRE_MINUTES=60
+    # 重要：将下面的URL替换为您的本地数据库连接信息
+    DATABASE_URL=postgresql://<你的用户>:<你的密码>@localhost:5432/<你的数据库名>
+    ```
+    e. **启动后端服务**
+    ```bash
+    uvicorn app.main:app --reload
+    ```
+    您的后端现在应该运行在 `http://127.0.0.1:8000`。
+
+3.  **设置并运行前端 (Terminal 2)**
+    a. **导航到前端目录**
+    ```bash
+    cd frontend
+    ```
+    b. **安装依赖**
+    ```bash
+    npm install
+    ```
+    c. **配置环境变量**
+    在 `frontend` 目录下创建一个名为 `.env.local` 的文件，指定本地后端的地址。
+    ```env
+    # frontend/.env.local
+    VITE_API_BASE_URL=[http://127.0.0.1:8000/api/v1](http://127.0.0.1:8000/api/v1)
+    ```
+    d. **启动前端开发服务器**
+    ```bash
+    npm run dev
+    ```
+    您的前端现在应该运行在 `http://localhost:5173`。
+
+4.  **访问应用**
+    -   **前端应用**: 打开浏览器访问 `http://localhost:5173`
+    -   **后端 API 文档**: 访问 `http://127.0.0.1:8000/docs`
+
+---
+
 ### 停止应用
 
-要停止所有正在运行的容器，请运行：
-
-```bash
-docker-compose down
+-   **Docker**: 在项目根目录运行 `docker-compose down`。
+-   **本地运行**: 在每个终端中按 `Ctrl + C` 停止前端和后端服务。
