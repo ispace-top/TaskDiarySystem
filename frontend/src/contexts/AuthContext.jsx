@@ -1,82 +1,79 @@
-// frontend/src/contexts/AuthContext.jsx
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { authApi } from '../api'; // 导入认证相关的 API
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import apiClient from '../api'; // 导入统一的 api client
 
-// 创建认证上下文
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // 存储当前用户信息
-  const [token, setToken] = useState(localStorage.getItem('token')); // 存储 JWT Token
-  const [loading, setLoading] = useState(true); // 加载状态
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  // 检查本地存储中的 token，并在应用加载时获取用户信息
   useEffect(() => {
-    const verifyUser = async () => {
+    const checkUser = async () => {
+      const token = localStorage.getItem('token');
       if (token) {
         try {
-          const response = await authApi.getMe(); // 调用后端 /me 接口验证 token 并获取用户
+          const response = await apiClient.get('/users/me');
           setUser(response.data);
+          setIsAuthenticated(true);
         } catch (error) {
-          console.error('Token 验证失败:', error);
-          localStorage.removeItem('token'); // 清除无效 token
-          setToken(null);
-          setUser(null);
+          console.error("Token 无效或已过期", error);
+          localStorage.removeItem('token');
         }
       }
       setLoading(false);
     };
-
-    verifyUser();
-  }, [token]); // 依赖 token 变化
+    checkUser();
+  }, []);
 
   const login = async (username, password) => {
     try {
-      const response = await authApi.login(username, password);
-      const accessToken = response.data.access_token;
-      localStorage.setItem('token', accessToken); // 将 token 存储到本地
-      setToken(accessToken); // 更新 token 状态，触发 useEffect 重新验证用户
-      return response.data;
+      const formData = new URLSearchParams();
+      formData.append('username', username);
+      formData.append('password', password);
+      
+      const response = await apiClient.post('/token', formData, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+
+      const { access_token } = response.data;
+      localStorage.setItem('token', access_token);
+      
+      const userResponse = await apiClient.get('/users/me');
+      setUser(userResponse.data);
+      setIsAuthenticated(true);
+      navigate('/tasks'); // 登录后跳转到任务页
     } catch (error) {
-      console.error('登录失败:', error);
-      throw error; // 抛出错误以便组件处理
+      console.error("登录失败", error);
+      throw error; // 抛出错误以便在UI中处理
     }
   };
 
-  const register = async (username, password, email) => {
+  const register = async (username, password) => {
     try {
-      const response = await authApi.register(username, password, email);
-      // 注册成功后可以选择自动登录
-      await login(username, password);
-      return response.data;
+        await apiClient.post('/users/', { username, password });
+        // 注册后自动登录
+        await login(username, password);
     } catch (error) {
-      console.error('注册失败:', error);
-      throw error;
+        console.error("注册失败", error);
+        throw error;
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('token'); // 清除本地存储的 token
-    setToken(null);
+    localStorage.removeItem('token');
     setUser(null);
+    setIsAuthenticated(false);
+    navigate('/login');
   };
 
-  // 提供给子组件的值
-  const value = {
-    user,
-    token,
-    loading,
-    isAuthenticated: !!user, // 简化判断是否登录
-    login,
-    register,
-    logout,
-    setUser, // 允许更新用户信息 (例如，当用户资料更新后)
-  };
+  const value = { user, isAuthenticated, loading, login, register, logout };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// 自定义 Hook，方便在组件中使用认证上下文
 export const useAuth = () => {
   return useContext(AuthContext);
 };

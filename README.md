@@ -16,7 +16,7 @@
 
 ### 选项 1: 使用 Docker (推荐)
 
-本项目使用 Docker Compose 进行容器化部署，可以一键启动所有开发服务。
+此方法可以一键启动所有服务，无需在本地安装 Python 或 Node.js 环境。
 
 #### 先决条件
 
@@ -31,16 +31,16 @@
     cd TaskDiarySystem
     ```
 
-2.  **创建环境变量文件**
-    在项目根目录创建一个 `.env` 文件，并将以下内容复制进去。**请务必修改 `SECRET_KEY`**。
+2.  **创建 Docker 环境变量文件**
+    在项目根目录创建一个 `.env` 文件，并复制以下内容。**请务必修改 `SECRET_KEY`**。
 
     ```env
-    # .env
+    # .env (用于 docker-compose)
     # 后端配置
     SECRET_KEY=a_very_long_and_super_secret_random_string_for_jwt
     ACCESS_TOKEN_EXPIRE_MINUTES=60
 
-    # 数据库配置 (供 docker-compose 使用)
+    # 数据库配置
     POSTGRES_USER=taskdiary
     POSTGRES_PASSWORD=strongpassword
     POSTGRES_DB=taskdiary_db
@@ -48,28 +48,13 @@
     DATABASE_URL=postgresql://taskdiary:strongpassword@db:5432/taskdiary_db
     ```
 
-3.  **创建后端 `requirements.txt`**
-    在 `backend` 目录下，根据您的项目依赖创建一个 `requirements.txt` 文件。例如：
-    ```txt
-    # backend/requirements.txt
-    fastapi
-    uvicorn[standard]
-    sqlalchemy
-    psycopg2-binary
-    pydantic[email]
-    python-jose[cryptography]
-    passlib[bcrypt]
-    python-multipart
-    ```
-
-4.  **构建并启动容器**
+3.  **构建并启动容器**
     在项目根目录下运行以下命令：
-
     ```bash
     docker-compose up --build -d
     ```
 
-5.  **访问应用**
+4.  **访问应用**
     -   **前端应用**: 打开浏览器访问 `http://localhost:5173`
     -   **后端 API 文档**: 访问 `http://localhost:8000/docs`
 
@@ -77,7 +62,7 @@
 
 ### 选项 2: 在本地运行 (不使用 Docker)
 
-此方法让您直接在您的操作系统上运行前端和后端服务。
+此方法让您直接在您的操作系统上运行前端和后端服务，便于调试。
 
 #### 先决条件
 
@@ -89,69 +74,54 @@
 
 1.  **准备数据库**
     -   确保您的 PostgreSQL 服务正在运行。
-    -   创建一个新的数据库和用户供本项目使用。例如，数据库名 `taskdiary_local`，用户名 `taskdiary_user`。
+    -   创建一个新的数据库和用户供本项目使用。例如，数据库名 `taskdiary_local`。
 
 2.  **设置并运行后端 (Terminal 1)**
-    a. **导航到后端目录**
-    ```bash
-    cd backend
-    ```
-    b. **创建并激活 Python 虚拟环境**
-    ```bash
-    # 创建虚拟环境
-    python -m venv venv
-    # 激活 (macOS/Linux)
-    source venv/bin/activate
-    # 激活 (Windows)
-    .\venv\Scripts\activate
-    ```
-    c. **安装依赖**
-    ```bash
-    pip install -r requirements.txt
-    ```
-    d. **配置环境变量**
-    在 `backend` 目录下创建一个 `.env` 文件，并填入您的本地数据库连接信息和密钥。
-    ```env
-    # backend/.env
-    SECRET_KEY=a_very_long_and_super_secret_random_string_for_jwt
-    ACCESS_TOKEN_EXPIRE_MINUTES=60
-    # 重要：将下面的URL替换为您的本地数据库连接信息
-    DATABASE_URL=postgresql://<你的用户>:<你的密码>@localhost:5432/<你的数据库名>
-    ```
-    e. **启动后端服务**
-    ```bash
-    uvicorn app.main:app --reload
-    ```
-    您的后端现在应该运行在 `http://127.0.0.1:8000`。
+    a. **导航到后端目录并创建 `.env` 文件**
+       在 `backend` 目录下创建 `.env` 文件，并填入您的本地数据库连接信息。
+       ```env
+       # backend/.env
+       SECRET_KEY=a_very_long_and_super_secret_random_string_for_jwt
+       ACCESS_TOKEN_EXPIRE_MINUTES=60
+       # 重要：将下面的URL替换为您的本地数据库连接信息
+       DATABASE_URL=postgresql://<你的用户>:<你的密码>@localhost:5432/<你的数据库名>
+       ```
+    b. **创建虚拟环境并安装依赖**
+       ```bash
+       cd backend
+       python -m venv venv
+       source venv/bin/activate  # macOS/Linux
+       # .\venv\Scripts\activate  # Windows
+       pip install -r requirements.txt
+       ```
+    c. **启动后端服务**
+       ```bash
+       uvicorn app.main:app --reload
+       ```
+       后端将运行在 `http://127.0.0.1:8000`。
 
 3.  **设置并运行前端 (Terminal 2)**
-    a. **导航到前端目录**
-    ```bash
-    cd frontend
-    ```
-    b. **安装依赖**
-    ```bash
-    npm install
-    ```
-    c. **配置环境变量**
-    在 `frontend` 目录下创建一个名为 `.env.local` 的文件，指定本地后端的地址。
-    ```env
-    # frontend/.env.local
-    VITE_API_BASE_URL=[http://127.0.0.1:8000/api/v1](http://127.0.0.1:8000/api/v1)
-    ```
-    d. **启动前端开发服务器**
-    ```bash
-    npm run dev
-    ```
-    您的前端现在应该运行在 `http://localhost:5173`。
+    a. **导航到前端目录并创建 `.env.local` 文件**
+       在 `frontend` 目录下创建 `.env.local` 文件，指定本地后端的地址。
+       ```env
+       # frontend/.env.local
+       VITE_API_BASE_URL=[http://127.0.0.1:8000/api/v1](http://127.0.0.1:8000/api/v1)
+       ```
+    b. **安装依赖并启动**
+       ```bash
+       cd frontend
+       npm install
+       npm run dev
+       ```
+       前端将运行在 `http://localhost:5173`。
 
 4.  **访问应用**
-    -   **前端应用**: 打开浏览器访问 `http://localhost:5173`
-    -   **后端 API 文档**: 访问 `http://127.0.0.1:8000/docs`
+    -   **前端应用**: `http://localhost:5173`
+    -   **后端 API 文档**: `http://127.0.0.1:8000/docs`
 
 ---
 
 ### 停止应用
 
 -   **Docker**: 在项目根目录运行 `docker-compose down`。
--   **本地运行**: 在每个终端中按 `Ctrl + C` 停止前端和后端服务。
+-   **本地运行**: 在每个终端中按 `Ctrl + C` 停止服务。
