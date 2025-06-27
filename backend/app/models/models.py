@@ -101,3 +101,32 @@ class Diary(Base):
 # - Tag: 标签模型，用于任务和日记的分类
 # - TaskTag: 任务和标签的关联表 (多对多关系)
 # - DiaryTag: 日记和标签的关联表 (多对多关系)
+
+# ... (User, Task, Diary 模型定义之后) ...
+
+class NotificationSettings(Base):
+    """
+    通知设置模型：存储用户的通知配置。
+    """
+    __tablename__ = "notification_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+    
+    email_enabled = Column(Boolean, default=False)
+    email_address = Column(String, nullable=True)
+
+    wecom_enabled = Column(Boolean, default=False)
+    wecom_webhook_url = Column(String, nullable=True)
+
+    dingtalk_enabled = Column(Boolean, default=False)
+    dingtalk_webhook_url = Column(String, nullable=True)
+
+    telegram_enabled = Column(Boolean, default=False)
+    telegram_bot_token = Column(String, nullable=True)
+    telegram_chat_id = Column(String, nullable=True)
+
+    # 关系：一对一
+    owner = relationship("User", back_populates="notification_settings")
+
+User.notification_settings = relationship("NotificationSettings", uselist=False, back_populates="owner")

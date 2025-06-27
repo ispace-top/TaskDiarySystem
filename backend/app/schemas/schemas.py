@@ -117,3 +117,29 @@ class DiaryStats(BaseModel):
     check_in_frequency_percentage: float
     daily_ratings_distribution: dict
     # 可以添加更多统计数据，如发展对比等
+
+# --- 通知相关模式 ---
+
+class NotificationSettingsBase(BaseModel):
+    email_enabled: bool = False
+    email_address: Optional[EmailStr] = None
+    wecom_enabled: bool = False
+    wecom_webhook_url: Optional[str] = None
+    dingtalk_enabled: bool = False
+    dingtalk_webhook_url: Optional[str] = None
+    telegram_enabled: bool = False
+    telegram_bot_token: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
+
+class NotificationSettingsCreate(NotificationSettingsBase):
+    pass
+
+class NotificationSettingsUpdate(NotificationSettingsBase):
+    pass
+
+class NotificationSettings(NotificationSettingsBase):
+    id: int
+    owner_id: int
+
+    class Config:
+        from_attributes = True
