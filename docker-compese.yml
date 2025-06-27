@@ -1,0 +1,126 @@
+# ===============================================================
+# 文件: docker-compose.yml (位于项目根目录)
+# 作用: 编排和启动所有服务 (后端, 数据库, 前端代理)
+# ===============================================================
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13-alpine
+    container_name: taskdiary_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "5433:5432" # 将容器的5432端口映射到主机的5433，避免与本地PostgreSQL冲突
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: taskdiary_backend
+    env_file: .env
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend/app:/app/app # 挂载代码以实现热重载
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: taskdiary_frontend
+    ports:
+      - "5173:5173" # 映射Vite开发服务器端口
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # 匿名卷，防止主机node_modules覆盖容器中的
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1 # 将API地址注入前端容器
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+# ===============================================================
+# 文件: backend/Dockerfile (位于backend目录)
+# 作用: 构建后端服务的Docker镜像
+# ===============================================================
+FROM python:3.10-slim
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+WORKDIR /app
+
+# 安装依赖
+# 假设您使用pip和requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY ./app /app/app
+
+# (如果使用Poetry, 请取消注释以下部分)
+# RUN pip install poetry
+# COPY poetry.lock pyproject.toml /app/
+# RUN poetry config virtualenvs.create false && poetry install --no-dev
+# COPY ./app /app/app
+
+EXPOSE 8000
+
+
+# ===============================================================
+# 文件: frontend/Dockerfile (位于frontend目录)
+# 作用: 构建前端开发环境的Docker镜像
+# ===============================================================
+FROM node:18-alpine
+
+WORKDIR /app
+
+# 复制 package.json 和 lock 文件
+COPY package*.json ./
+
+# 安装依赖
+RUN npm install
+
+# 复制所有前端代码
+COPY . .
+
+EXPOSE 5173
+
+# 启动Vite开发服务器
+CMD ["npm", "run", "dev", "--", "--host"]
+
+# ===============================================================
+# 文件: .env (位于项目根目录)
+# 作用: 存储所有服务的环境变量，请务必不要提交到Git
+# ===============================================================
+# --- 后端配置 ---
+# 重要：请务必将此密钥更改为一个长且随机的字符串！
+SECRET_KEY=a_very_long_and_super_secret_random_string_for_jwt
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+
+# --- 数据库配置 (供docker-compose使用) ---
+POSTGRES_USER=taskdiary
+POSTGRES_PASSWORD=strongpassword
+POSTGRES_DB=taskdiary_db
+
+# --- 数据库连接URL (供FastAPI应用使用) ---
+# 注意: 'db' 是 docker-compose.yml 中数据库服务的主机名
+DATABASE_URL=postgresql://taskdiary:strongpassword@db:5432/taskdiary_db
