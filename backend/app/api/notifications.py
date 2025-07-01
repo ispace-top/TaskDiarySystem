@@ -7,7 +7,9 @@ from app.crud import notifications as crud_notifications
 from app.models.models import User
 from app.core.security import get_current_user
 
-router = APIRouter()
+# --- 修正之处 ---
+# 为路由器添加 /notifications 前缀
+router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
 @router.get("/settings", response_model=NotificationSettings)
 def read_notification_settings(

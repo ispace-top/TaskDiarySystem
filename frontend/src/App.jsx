@@ -1,54 +1,64 @@
 // frontend/src/App.jsx
-
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
+import { Routes, Route } from 'react-router-dom';
+import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import AuthPage from './pages/AuthPage';
-import DashboardPage from './pages/DashboardPage';
 import TasksPage from './pages/TasksPage';
+import TaskDetailPage from './pages/TaskDetail';
 import TaskFormPage from './pages/TaskFormPage';
-import TaskDetail from './pages/TaskDetail';
 import DiariesPage from './pages/DiariesPage';
+import DiaryDetailPage from './pages/DiaryDetail';
 import DiaryFormPage from './pages/DiaryFormPage';
-import DiaryDetail from './pages/DiaryDetail';
+import DashboardPage from './pages/DashboardPage';
 import TimelinePage from './pages/TimelinePage';
 import DiaryStatsPage from './pages/DiaryStatsPage';
 import SettingsPage from './pages/SettingsPage';
-import Layout from './components/Layout'; // 导入 Layout 组件
+import ProtectedRoute from './components/ProtectedRoute';
+import { useAuth } from './contexts/AuthContext';
 
 function App() {
-    return (
-        <Router>
-            <AuthProvider>
-                <Routes>
-                    <Route path="/" element={<HomePage />} />
-                    {/* 确保 AuthPage 能够处理登录和注册两个路径 */}
-                    <Route path="/auth/login" element={<AuthPage />} />
-                    <Route path="/auth/register" element={<AuthPage />} />
+  const { loading } = useAuth();
 
-                    {/* 保护的路由，需要用户登录才能访问 */}
-                    <Route element={<ProtectedRoute />}>
-                        <Route element={<Layout />}> {/* 使用 Layout 包裹需要导航栏的页面 */}
-                            <Route path="/dashboard" element={<DashboardPage />} />
-                            <Route path="/tasks" element={<TasksPage />} />
-                            <Route path="/tasks/new" element={<TaskFormPage />} />
-                            <Route path="/tasks/edit/:id" element={<TaskFormPage />} />
-                            <Route path="/tasks/:id" element={<TaskDetail />} />
-                            <Route path="/diaries" element={<DiariesPage />} />
-                            <Route path="/diaries/new" element={<DiaryFormPage />} />
-                            <Route path="/diaries/edit/:id" element={<DiaryFormPage />} />
-                            <Route path="/diaries/:id" element={<DiaryDetail />} />
-                            <Route path="/timeline" element={<TimelinePage />} />
-                            <Route path="/stats" element={<DiaryStatsPage />} />
-                            <Route path="/settings" element={<SettingsPage />} />
-                        </Route>
-                    </Route>
-                </Routes>
-            </AuthProvider>
-        </Router>
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-100">
+        <div className="text-lg font-semibold text-gray-600">正在加载...</div>
+      </div>
     );
+  }
+  
+  // App 组件只包含路由定义，不包含 <Router>
+  return (
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        {/* Public Routes */}
+        <Route index element={<HomePage />} />
+        <Route path="login" element={<AuthPage />} />
+        <Route path="register" element={<AuthPage />} />
+
+        {/* Protected Routes */}
+        <Route path="dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        
+        <Route path="tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
+        <Route path="tasks/new" element={<ProtectedRoute><TaskFormPage /></ProtectedRoute>} />
+        <Route path="tasks/:id" element={<ProtectedRoute><TaskDetailPage /></ProtectedRoute>} />
+        <Route path="tasks/:id/edit" element={<ProtectedRoute><TaskFormPage /></ProtectedRoute>} />
+
+        <Route path="diaries" element={<ProtectedRoute><DiariesPage /></ProtectedRoute>} />
+        <Route path="diaries/new" element={<ProtectedRoute><DiaryFormPage /></ProtectedRoute>} />
+        <Route path="diaries/:id" element={<ProtectedRoute><DiaryDetailPage /></ProtectedRoute>} />
+        <Route path="diaries/:id/edit" element={<ProtectedRoute><DiaryFormPage /></ProtectedRoute>} />
+        
+        <Route path="timeline" element={<ProtectedRoute><TimelinePage /></ProtectedRoute>} />
+        <Route path="stats" element={<ProtectedRoute><DiaryStatsPage /></ProtectedRoute>} />
+        <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+
+        {/* Fallback Route */}
+        <Route path="*" element={<div>页面未找到</div>} />
+      </Route>
+    </Routes>
+  );
 }
 
 export default App;

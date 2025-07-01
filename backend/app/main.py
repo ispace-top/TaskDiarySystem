@@ -1,48 +1,41 @@
 # backend/app/main.py
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware # 导入 CORSMiddleware
-
+from fastapi import FastAPI, APIRouter
+from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth, tasks, diaries, notifications
 from app.database import engine, Base
+from app.core.config import settings
 
-# 创建所有数据库表
+# 在应用启动时根据模型定义创建数据库表
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="任务日记系统 API",
-    description="一个用于管理任务和日记的 API。",
+    title="TaskDiarySystem API",
+    description="一个功能强大的任务和日记管理系统，支持多种数据库。",
     version="1.0.0",
 )
 
-# 配置 CORS 中间件
-# 允许来自前端的特定源
-# 允许所有方法 (GET, POST, PUT, DELETE 等)
-# 允许所有头部
-origins = [
-    "http://localhost",
-    "http://localhost:3000", # 你的前端应用的地址
-    "http://127.0.0.1:3000", # 如果前端也可能通过 127.0.0.1 访问
-]
-
+# 设置 CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"], # 允许所有 HTTP 方法
-    allow_headers=["*"], # 允许所有 HTTP 头部
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# 包含 API 路由
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
-app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
-app.include_router(diaries.router, prefix="/api/v1/diaries", tags=["diaries"])
-app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["notifications"])
+api_router = APIRouter()
 
-@app.get("/")
+# --- 修正之处 ---
+# 移除了 include_router 中的 prefix，因为各个路由模块已经自带了前缀
+api_router.include_router(auth.router, tags=["Auth"])
+api_router.include_router(tasks.router, tags=["Tasks"])
+api_router.include_router(diaries.router, tags=["Diaries"])
+api_router.include_router(notifications.router, tags=["Notifications"])
+# -----------------
+
+# 将 api_router 挂载到主应用 app 上，并添加统一的前缀
+app.include_router(api_router, prefix="/api/v1")
+
+@app.get("/", tags=["Root"])
 def read_root():
-    """
-    根路径，返回一个简单的问候语。
-    """
-    return {"message": "欢迎来到任务日记系统 API！"}
-
+    return {"message": "欢迎使用 TaskDiarySystem API"}
