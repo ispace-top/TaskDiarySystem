@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 // 导入 apiClient 和新的 authApi 方法
 import apiClient, { authApi } from '../api/index';
 
-const AuthContext = createContext(null);
+// 确保 AuthContext 被导出
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
