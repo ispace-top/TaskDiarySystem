@@ -1,12 +1,14 @@
-# backend/requirements.txt
 fastapi
 uvicorn[standard]
 sqlalchemy
-psycopg2-binary
+psycopg2-binary  # PostgreSQL 驱动
 pydantic[email]
+email-validator 
+pydantic-settings # 用于新的配置管理
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
 python-dotenv
-requests  # 新增
-celery    # 新增
+requests
+celery
+#mysqlclient # 新增：MySQL 驱动

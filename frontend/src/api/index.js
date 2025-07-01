@@ -1,16 +1,18 @@
 // frontend/src/api/index.js
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// 从 .env.local 文件中获取后端的基地址
+// 它应该是类似 'http://127.0.0.1:8000/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const apiClient = axios.create({
-  baseURL: `${API_BASE_URL}/api/v1`,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// 请求拦截器
+// 请求拦截器：在每个请求头中自动添加认证 Token
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -22,34 +24,38 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// 响应拦截器
+// 响应拦截器：处理认证失败 (401) 的情况
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
+      // 如果 token 无效或过期，清除本地 token 并触发一个全局事件
       localStorage.removeItem('token');
-      // 使用自定义事件或重定向
+      // AuthContext 可以监听此事件来更新 UI
       window.dispatchEvent(new Event('auth-error'));
     }
     return Promise.reject(error);
   }
 );
 
-// --- Auth ---
+// --- Auth API 方法 ---
 export const authApi = {
-  register: (username, password, email) => apiClient.post('/register', { username, password, email }),
+  // 注册接口
+  register: (username, password, email) => apiClient.post('/auth/register', { username, password, email }),
+  // 登录接口
   login: (username, password) => {
     const params = new URLSearchParams();
     params.append('username', username);
     params.append('password', password);
-    return apiClient.post('/token', params, {
+    return apiClient.post('/auth/token', params, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
   },
-  getMe: () => apiClient.get('/me'),
+  // 获取当前用户信息接口
+  getMe: () => apiClient.get('/auth/me'),
 };
 
-// --- Tasks ---
+// --- Tasks API 方法 ---
 export const tasksApi = {
   getTasks: (params = {}) => apiClient.get('/tasks/', { params }),
   getTask: (taskId) => apiClient.get(`/tasks/${taskId}`),
@@ -58,7 +64,7 @@ export const tasksApi = {
   deleteTask: (taskId) => apiClient.delete(`/tasks/${taskId}`),
 };
 
-// --- Diaries ---
+// --- Diaries API 方法 ---
 export const diariesApi = {
   getDiaries: (params = {}) => apiClient.get('/diaries/', { params }),
   getDiary: (diaryId, decrypt = false) => apiClient.get(`/diaries/${diaryId}`, { params: { decrypt } }),
@@ -68,7 +74,7 @@ export const diariesApi = {
   getDiaryStats: () => apiClient.get('/diaries/stats/summary'),
 };
 
-// --- Notifications ---
+// --- Notifications API 方法 ---
 export const notificationsApi = {
   getSettings: () => apiClient.get('/notifications/settings'),
   updateSettings: (settings) => apiClient.put('/notifications/settings', settings),
